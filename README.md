@@ -10,9 +10,9 @@ Unlike generic document loaders, this system performs custom crawling, HTML stru
 - Custom web crawling and document preparation over 104 documentation pages (FastAPI). 
 - Structure-aware parsing of headings, code blocks, lists, and explanations.
 - Hierarchical chunking to preserve semantic context.
-- Citation-grounded answers with explicit source URLs.
-- Evaluation using RAGAS (faithfulness and context precision).
-- Dockerized, minimal chatbot-style interface for interactive Q&A.
+- Citation-grounded answers with explicit source URLs.*
+- Evaluation using RAGAS on manual ground truth dataset.*
+- Dockerized, minimal chatbot-style interface for interactive Q&A.*
 
 ## Scope & Limitations
 
@@ -22,3 +22,4 @@ Unlike generic document loaders, this system performs custom crawling, HTML stru
 - Evaluation performed on a limited question set using RAGAS.
 
 
+* -> in progress

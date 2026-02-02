@@ -1,10 +1,10 @@
-# 📘 FastAPI Documentation RAG System
+# DocStructRAG: Structure-Aware Documentation RAG Pipeline 
 
 A **structure-aware Retrieval-Augmented Generation (RAG) system** built over the official FastAPI documentation, focused on **clean parsing, hierarchy-aware chunking, and metadata-driven retrieval** for accurate, citation-grounded answers.
 
 ---
 
-## 🚀 Overview
+## Overview
 
 This project is built on the principle that **retrieval quality dominates generation quality** in RAG systems.
 
@@ -12,7 +12,7 @@ Instead of relying on generic loaders or naive token-based chunking, the system 
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 FastAPI Docs → Custom Crawler → HTML Parsing
 → Hierarchy Reconstruction → Structure-Aware Chunking

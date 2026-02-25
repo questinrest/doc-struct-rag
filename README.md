@@ -1,5 +1,14 @@
 # DocStructRAG: Structure-Aware Documentation RAG Pipeline
 
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat-square&logo=fastapi)
+![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=flat-square&logo=langchain&logoColor=white)
+![Pinecone](https://img.shields.io/badge/Pinecone-Serverless-6236FF?style=flat-square)
+![HuggingFace](https://img.shields.io/badge/HuggingFace-all--mpnet--base--v2-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
+![Groq](https://img.shields.io/badge/Groq-Llama--3.1--8b-F55036?style=flat-square)
+![BeautifulSoup](https://img.shields.io/badge/BeautifulSoup4-Parser-4B8BBE?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+
 A production-oriented Retrieval-Augmented Generation (RAG) system built over the official FastAPI documentation. The project is built on a single, opinionated thesis: **retrieval quality determines answer quality**. Every architectural decision — from the custom crawler to the metadata schema — is a direct consequence of that belief.
 
 ---
@@ -48,49 +57,14 @@ flowchart TD
 
 ## Key Engineering Decisions
 
-### 1. Custom Crawler with Canonical URL Resolution
-
-Generic crawlers follow `href` links and produce duplicate or out-of-order pages. The FastAPI documentation uses canonical `<link rel="canonical">` and `<link rel="next">` tags to define an authoritative reading order across 104 pages.
-
-The crawler (`scraping/url_crawl.py`) explicitly processes canonical redirects before following `next` links, resolves absolute URLs to relative paths for portability, and terminates on a configurable stop path without requiring a sitemap. This guarantees a stable, ordered, deduplicated URL list — a prerequisite for deterministic retrieval.
-
-**Trade-off considered:** Using a sitemap or a recursive DFS crawler would be faster to write but would produce an unordered, potentially duplicated URL list. Order is load-bearing here because the hierarchy reconstructor depends on a consistent page sequence.
-
-### 2. Structure-Preserving HTML Parser
-
-The scraper (`scraping/scrape_page.py`) walks the DOM as a typed content stream rather than calling `get_text()`. Every node is classified as one of: `heading` (h1–h6 with level preserved), `text` (paragraph), `list_item`, or `code`. Admonition blocks (`note`, `tip`, `info`) are intentionally excluded because they are navigational noise, not semantic content.
-
-Code blocks receive a dedicated normalization pass: leading/trailing blank lines are stripped, internal multi-blank-line sequences are collapsed to one, indentation is preserved exactly. Code is then delimited with `CODE / /CODE` sentinels for unambiguous downstream identification.
-
-**Trade-off considered:** Using an existing parser like `markdownify` would require a conversion round-trip that loses `class`-level distinctions between tabbed code panels (`tabbed-content`) and inline highlights (`highlight`). Both are handled separately in the parser, preserving code that would otherwise be silently dropped.
-
-### 3. Hierarchy-Aware Chunking
-
-Documentation is not prose. Token-window chunking cuts across section boundaries, splitting explanations from the code that implements them. The chunking strategy follows heading boundaries so that each chunk contains one semantic unit: a heading plus its associated text and code.
-
-This keeps retrieval precise. When a user asks about dependency injection, the retrieved chunk contains the explanation and the illustrative example together — not two separate fragments from different parts of the window.
-
-### 4. Metadata Schema for Filtered and Citation-Aware Retrieval
-
-Each chunk carries structured metadata: `section_path` (the full heading breadcrumb, e.g., `FastAPI > Path Parameters > Path Parameters with Types`), `depth` (1–6), source `url`, and a `has_code` flag.
-
-This enables retrieval that is aware of context beyond embedding similarity:
-
-- A query about code examples can filter to `has_code = true` chunks, reducing context noise.
-- Every answer can be grounded with a source URL and section path, making citations reliable rather than approximate.
-- Smaller LLMs perform better with less context noise; metadata filtering is a direct lever on context quality.
-
-### 5. Embedding and Vector Storage Selection
-
-`sentence-transformers/all-mpnet-base-v2` (768 dimensions) is used for embedding. It is the best-performing general-purpose dense retrieval model in the `sentence-transformers` family without requiring GPU inference, making it viable for local development and cost-controlled production.
-
-Pinecone serverless (AWS `us-east-1`, cosine metric) is used as the vector database. The serverless tier eliminates pod sizing decisions during the research phase, and the cosine metric is appropriate for normalized sentence embeddings where magnitude is not a semantic signal.
-
-### 6. Deliberate Deferral of LLM Selection
-
-`Llama-3.1-8b-instant` via Groq is used as the current generation model. The choice is explicitly provisional. LLM selection was deferred until retrieval quality stabilized, because evaluating generation quality against a weak retrieval baseline produces misleading signals about model capability.
-
-Once RAGAS evaluation is complete, model size and provider will be chosen based on measured faithfulness and latency, not prior assumptions.
+| # | Decision | Rationale |
+|---|---|---|
+| 1 | **Canonical URL crawler** over sitemap or DFS | FastAPI docs use `<link rel="canonical">` + `<link rel="next">` to define a canonical reading order. Following these guarantees a stable, deduplicated, ordered URL list — a prerequisite for deterministic hierarchy reconstruction. |
+| 2 | **Typed DOM walker** over `get_text()` or markdownify | Classifies every node (`heading`, `text`, `list_item`, `code`) by tag and CSS class. Separates tabbed code panels from inline highlights, strips admonition noise, and preserves indentation with `CODE` / `/CODE` sentinels — all silently lost by flat-text extraction. |
+| 3 | **Section-boundary chunking** over token windows | Each chunk maps to one semantic unit: a heading plus its prose and code. Keeps explanations and examples co-located so retrieval returns complete context, not orphaned fragments. |
+| 4 | **Rich metadata schema** (`section_path`, `depth`, `url`, `has_code`) | Enables filtered retrieval beyond embedding similarity — e.g., restrict to code-heavy chunks, or surface the exact breadcrumb for citation grounding. Smaller LLMs respond better with tighter, scoped context. |
+| 5 | **`all-mpnet-base-v2` + Pinecone serverless** | Top-performing dense retrieval model without GPU inference; cosine metric is correct for normalized embeddings. Serverless tier removes pod-sizing overhead during the research phase. |
+| 6 | **Provisional LLM (`Llama-3.1-8b-instant`)** | LLM selection deferred until retrieval is validated. Benchmarking generation quality against a weak retrieval baseline produces misleading signals; final model choice gates on RAGAS results. |
 
 ---
 

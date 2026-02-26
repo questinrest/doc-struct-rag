@@ -36,8 +36,7 @@ flowchart TD
     G -->|Dense vectors| H[Pinecone Vector Index\ncosine similarity, serverless AWS]
     H -->|Top-k retrieval| I[Context Assembler]
     I -->|Augmented prompt| J[Groq LLM\nLlama-3.1-8b-instant]
-    J -->|Grounded answer + citations| K[FastAPI REST Endpoint\nPOST /api/rag]
-    K --> L[Client]
+    J -->|Grounded answer + citations| K[Client]
 
     style A fill:#1a1a2e,color:#e0e0e0
     style B fill:#16213e,color:#e0e0e0
@@ -50,7 +49,6 @@ flowchart TD
     style I fill:#533483,color:#e0e0e0
     style J fill:#e94560,color:#ffffff
     style K fill:#e94560,color:#ffffff
-    style L fill:#1a1a2e,color:#e0e0e0
 ```
 
 ---
@@ -76,7 +74,6 @@ flowchart TD
 | Typed DOM parser | Walks descendants; classifies each node by tag and CSS class |
 | Code block normalizer | Strips whitespace noise, preserves indentation, adds sentinels |
 | Metadata schema | `section_path`, depth, URL, code flag per chunk |
-| FastAPI REST interface | `POST /api/rag` wraps the full retrieval-generation chain |
 
 Standard library components (LangChain, Pinecone SDK, HuggingFace) handle embedding, vector storage, and LLM invocation.
 
@@ -154,23 +151,9 @@ python rag.py
 # Embeds chunks with all-mpnet-base-v2 and upserts into Pinecone
 ```
 
-### Step 4: Start the API Server
+### Step 4: Query the System
 
-```bash
-uvicorn main:app --reload
-```
 
-The server starts at `http://127.0.0.1:8000`.
-
-### Step 5: Query the System
-
-```bash
-curl -X POST "http://127.0.0.1:8000/api/rag?query=How+do+I+use+path+parameters+in+FastAPI"
-```
-
-API documentation is auto-generated at `http://127.0.0.1:8000/docs`.
-
----
 
 ## Project Structure
 
